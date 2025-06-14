@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZX Spectrum Pixel Smasher v2.6 Professional</title>
+    <meta name="description" content="Professional ZX Spectrum Graphics Editor">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); padding: 12px 24px; border-bottom: 3px solid #3b82f6; display: flex; align-items: center; gap: 16px; height: 60px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .header h1 { color: #ffffff; font-size: clamp(14px, 3vw, 20px); font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: -0.5px; }
+        .version-badge { background: #10b981; color: white; padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+        .btn { background: linear-gradient(135deg, #374151 0%, #1f2937 100%); border: 1px solid #4b5563; color: #f9fafb; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: clamp(10px, 1.5vw, 12px); font-weight: 500; transition: all 0.2s ease; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .btn:hover { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-color: #60a5fa; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .btn:active { transform: translateY(0); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .btn.primary { background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #34d399; }
+        .btn.danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-color: #f87171; }
+        .btn.toggle { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-color: #a78bfa; }
+        .btn.toggle.active { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-color: #fbbf24; color: #000; }
+        .main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+        .sidebar { width: 280px; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-right: 2px solid #334155; padding: 16px; overflow-y: auto; flex-shrink: 0; box-shadow: 4px 0 8px rgba(0,0,0,0.1); }
+        .sidebar::-webkit-scrollbar { width: 8px; }
+        .sidebar::-webkit-scrollbar-track { background: #1e293b; }
+        .sidebar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .section { margin-bottom: 24px; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(51, 65, 85, 0.5); }
+        .section h3 { color: #60a5fa; margin-bottom: 12px; font-size: 13px; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+        .help-icon { background: #3b82f6; color: white; border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; cursor: help; margin-left: auto; }
+        .tooltip { position: relative; display: inline-block; }
+        .tooltip .tooltiptext { visibility: hidden; width: 240px; background: #1f2937; color: #f9fafb; text-align: left; border-radius: 6px; padding: 12px; position: absolute; z-index: 1000; top: -5px; left: 110%; opacity: 0; transition: opacity 0.3s; border: 1px solid #374151; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 11px; line-height: 1.4; }
+        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+        .tool-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+        .shapes-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 16px; }
+        .tool, .shape-tool { aspect-ratio: 1; background: linear-gradient(135deg, #374151 0%, #1f2937 100%); border: 2px solid #4b5563; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .tool:hover, .shape-tool:hover { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-color: #60a5fa; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .tool.active, .shape-tool.active { background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #34d399; color: #ffffff; }
+        .palette { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 16px; }
+        .color { width: 28px; height: 28px; border: 2px solid #4b5563; cursor: pointer; border-radius: 6px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .color:hover { transform: scale(1.1); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .color.ink-selected { border: 3px solid #10b981; box-shadow: inset 0 0 0 1px #000, 0 0 0 2px #34d399; }
+        .color.paper-selected { border: 3px solid #f59e0b; box-shadow: inset 0 0 0 1px #fff, inset 3px 3px 0 #000, 0 0 0 2px #fbbf24; }
+        .canvas-area { flex: 1; display: flex; flex-direction: column; background: linear-gradient(135deg, #0f172a 0%, #020617 100%); min-width: 0; }
+        .toolbar { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 12px 20px; border-bottom: 2px solid #334155; display: flex; align-items: center; gap: 16px; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; }
+        .canvas-container { flex: 1; overflow: auto; background: radial-gradient(circle at center, #0f172a 0%, #020617 100%); padding: 24px; display: flex; align-items: center; justify-content: center; position: relative; min-height: 0; }
+        .canvas-wrapper { position: relative; display: inline-block; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 24px rgba(0,0,0,0.4); border: 3px solid #334155; }
+        #canvas { background: #000000; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; cursor: crosshair; display: block; }
+        .grid-overlay { position: absolute; top: 0; left: 0; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
+        .grid-overlay.active { opacity: 1; }
+        .grid-1x1.active { z-index: 8; background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px), linear-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px); background-size: var(--grid-1x1-size, 1px) var(--grid-1x1-size, 1px); }
+        .grid-8x8.active { z-index: 9; background-image: linear-gradient(90deg, rgba(251, 191, 36, 0.6) 1px, transparent 1px), linear-gradient(rgba(251, 191, 36, 0.6) 1px, transparent 1px); background-size: var(--grid-8x8-size, 8px) var(--grid-8x8-size, 8px); }
+        .grid-16x16.active { z-index: 10; background-image: linear-gradient(90deg, rgba(168, 85, 247, 0.6) 1px, transparent 1px), linear-gradient(rgba(168, 85, 247, 0.6) 1px, transparent 1px); background-size: var(--grid-16x16-size, 16px) var(--grid-16x16-size, 16px); }
+        .status { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 10px 20px; border-top: 2px solid #334155; font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); }
+        .status-left, .status-right { display: flex; align-items: center; gap: 16px; }
+        .status-indicator { display: flex; align-items: center; gap: 6px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; }
+        .status-dot.warning { background: #f59e0b; }
+        .status-dot.error { background: #ef4444; }
+        .slider { width: 120px; height: 6px; border-radius: 3px; background: #374151; outline: none; -webkit-appearance: none; }
+        .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; border: 2px solid #1e293b; }
+        .slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; border: 2px solid #1e293b; }
+        .current-colors { display: flex; gap: 16px; margin-bottom: 16px; justify-content: center; }
+        .current-color { text-align: center; }
+        .color-swatch { width: 40px; height: 40px; border: 3px solid #374151; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin-bottom: 4px; }
+        .color-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .mode-controls { display: flex; gap: 8px; margin-bottom: 16px; justify-content: center; }
+        .info { font-size: 11px; color: #94a3b8; line-height: 1.5; background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; border-left: 4px solid #3b82f6; }
+        .info strong { color: #e2e8f0; display: block; margin-bottom: 4px; }
+        .error-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 10000; }
+        .error-content { background: #1f2937; border: 2px solid #ef4444; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .error-title { color: #ef4444; font-size: 18px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .error-message { color: #e2e8f0; margin-bottom: 20px; line-height: 1.5; }
+        .error-actions { display: flex; gap: 12px; justify-content: flex-end; }
+        .perf-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #000; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; display: none; }
+        @media (max-width: 1024px) { .sidebar { width: 240px; } .header { padding: 8px 16px; } .toolbar { padding: 8px 16px; } }
+        @media (max-width: 768px) { .sidebar { width: 200px; } .section { padding: 12px; } .canvas-container { padding: 16px; } }
+    </style>
+</head>
+<body>
+    <div id="errorModal" class="error-modal">
+        <div class="error-content">
+            <div class="error-title"><span>⚠️</span><span id="errorTitle">Error</span></div>
+            <div id="errorMessage" class="error-message"></div>
+            <div class="error-actions">
+                <button class="btn" onclick="app.recoverFromError()">Recover</button>
+                <button class="btn primary" onclick="app.hideError()">Continue</button>
+            </div>
+        </div>
+    </div>
+    <div class="header">
+        <h1>ZX Spectrum Pixel Smasher</h1>
+        <span class="version-badge">V2.6 Professional</span>
+        <div class="tooltip">
+            <button class="btn primary" onclick="app.clearCanvas()" title="New blank canvas">📄 New</button>
+            <span class="tooltiptext">Create fresh canvas</span>
+        </div>
+        <div class="tooltip">
+            <button class="btn" onclick="app.saveImage()" title="Export PNG">💾 PNG</button>
+            <span class="tooltiptext">Export as PNG image</span>
+        </div>
+        <div class="tooltip">
+            <button class="btn" onclick="app.saveSCR()" title="Save SCR">📼 SCR</button>
+            <span class="tooltiptext">Save ZX Spectrum format</span>
+        </div>
+        <div class="tooltip">
+            <button class="btn" onclick="app.loadFile()" title="Load file">📁 Load</button>
+            <span class="tooltiptext">Load images or SCR files</span>
+        </div>
+        <div class="tooltip">
+            <button class="btn" onclick="app.exportASM()" title="Export ASM">🔧 ASM</button>
+            <span class="tooltiptext">Export Z80 assembly</span>
+        </div>
+        <button class="btn" onclick="app.undo()" title="Undo (Ctrl+Z)">↶ Undo</button>
+        <button class="btn" onclick="app.redo()" title="Redo (Ctrl+Shift+Z)">↷ Redo</button>
+        <button class="btn toggle" id="btn-grid-1x1" onclick="app.toggleGrid('1x1')" title="1x1 grid">1×1</button>
+        <button class="btn toggle" id="btn-grid-8x8" onclick="app.toggleGrid('8x8')" title="8x8 grid">8×8</button>
+        <button class="btn toggle" id="btn-grid-16x16" onclick="app.toggleGrid('16x16')" title="16x16 grid">16×16</button>
+        <button class="btn danger" onclick="app.safeReset()" title="Reset">🔄 Reset</button>
+    </div>
+    <div class="main">
+        <div class="sidebar">
+            <div id="perfWarning" class="perf-warning">⚠️ Large file! Performance may be affected.</div>
+            <div class="section">
+                <h3>Drawing Tools <div class="tooltip"><span class="help-icon">?</span><span class="tooltiptext">B=Brush, E=Eraser, F=Fill, S=Shapes</span></div></h3>
+                <div class="tool-grid">
+                    <div class="tool active" data-tool="brush" title="Brush (B)">🖌️</div>
+                    <div class="tool" data-tool="eraser" title="Eraser (E)">🧽</div>
+                    <div class="tool" data-tool="fill" title="Fill (F)">🪣</div>
+                    <div class="tool" data-tool="shapes" title="Shapes (S)">📐</div>
+                    <div class="tool" data-tool="select" title="Select">⬚</div>
+                </div>
+            </div>
+            <div class="section">
+                <h3>Brush Settings</h3>
+                <input type="range" class="slider" id="brush-size" min="1" max="8" value="1" style="width: 100%;">
+                <div style="font-size: 12px; margin-top: 8px; text-align: center; color: #94a3b8;">Size: <span id="size-display">1px</span></div>
+            </div>
+            <div class="section">
+                <h3>Shape Library</h3>
+                <div class="shapes-grid">
+                    <div class="shape-tool active" data-shape="line" title="Line">│</div>
+                    <div class="shape-tool" data-shape="rect" title="Rectangle">▭</div>
+                    <div class="shape-tool" data-shape="circle" title="Circle">○</div>
+                    <div class="shape-tool" data-shape="triangle" title="Triangle">△</div>
+                    <div class="shape-tool" data-shape="diamond" title="Diamond">◇</div>
+                    <div class="shape-tool" data-shape="star" title="Star">⭐</div>
+                </div>
+            </div>
+            <div class="section">
+                <h3>ZX Spectrum Palette <div class="tooltip"><span class="help-icon">?</span><span class="tooltiptext">Left=INK, Right=PAPER, 2 colors per 8×8 block</span></div></h3>
+                <div class="palette" id="palette"></div>
+                <div class="mode-controls">
+                    <button class="btn toggle" id="bright-toggle" onclick="app.toggleBright()">✨ Bright</button>
+                    <button class="btn toggle" id="flash-toggle" onclick="app.toggleFlash()">⚡ Flash</button>
+                </div>
+                <div class="current-colors">
+                    <div class="current-color">
+                        <div id="ink-color" class="color-swatch"></div>
+                        <div class="color-label">INK</div>
+                    </div>
+                    <div class="current-color">
+                        <div id="paper-color" class="color-swatch"></div>
+                        <div class="color-label">PAPER</div>
+                    </div>
+                </div>
+            </div>
+            <div class="info">
+                <strong>💾 Memory:</strong> <span id="memory-display">Calculating...</span><br><br>
+                <strong>⌨️ Shortcuts:</strong><br>B/E/F/S - Tools • G/1/2 - Grids<br>Ctrl+Z/Shift+Z - Undo/Redo • +/- Zoom<br><br>
+                <strong>🎨 Colors:</strong><br>Left=INK • Right=PAPER<br><br>
+                <strong>📏 Grids:</strong><br>1×1=Pixel • 8×8=Char • 16×16=Structure
+            </div>
+        </div>
+        <div class="canvas-area">
+            <div class="toolbar">
+                <span style="color: #94a3b8; font-weight: 500;">Zoom:</span>
+                <button class="btn" onclick="app.setZoom(1)">100%</button>
+                <button class="btn" onclick="app.setZoom(2)">200%</button>
+                <button class="btn" onclick="app.setZoom(4)">400%</button>
+                <input type="range" class="slider" id="zoom" min="1" max="8" value="2" step="0.5">
+                <span id="zoom-display" style="color: #e2e8f0; font-weight: 500;">200%</span>
+                <span style="margin-left: auto; color: #94a3b8;">📍 Cursor: <span id="cursor" style="color: #e2e8f0; font-weight: 500;">0, 0</span></span>
+            </div>
+            <div class="canvas-container">
+                <div class="canvas-wrapper">
+                    <canvas id="canvas" width="256" height="192"></canvas>
+                    <div id="grid-1x1" class="grid-overlay grid-1x1"></div>
+                    <div id="grid-8x8" class="grid-overlay grid-8x8"></div>
+                    <div id="grid-16x16" class="grid-overlay grid-16x16"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="status">
+        <div class="status-left">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span>ZX Spectrum Pixel Smasher v2.6 Professional</span>
+            </div>
+        </div>
+        <div class="status-right">
+            <span id="status">System Ready</span>
+        </div>
+    </div>
+<script>
+class HistoryManager {
+    constructor(max = 50) {
+        this.max = max; this.states = []; this.idx = -1; this.branches = new Map(); this.branchId = 'main'; this.branchCnt = 0; this.lastUndo = false; this.pendingRedo = null;
+    }
+    saveState(pixels, attrs, type = 'draw') {
+        const state = { pixels: pixels.map(r => new Uint8Array(r)), attributes: attrs.map(r => r.map(a => ({ ...a }))), timestamp: Date.now(), actionType: type, branchId: this.branchId };
+        if (this.pendingRedo && type === 'draw') this.pendingRedo = null;
+        if (this.hasRedo() && this.lastUndo) this.handleBranch(state); else this.addMain(state);
+        this.lastUndo = false; this.cleanup();
+    }
+    handleBranch(state) {
+        const future = this.states.slice(this.idx + 1);
+        if (future.length > 0) this.branches.set(`branch_${++this.branchCnt}`, { states: future, parentIndex: this.idx, createdAt: Date.now() });
+        this.states = this.states.slice(0, this.idx + 1); this.states.push(state); this.idx = this.states.length - 1; this.pendingRedo = state;
+    }
+    addMain(state) {
+        if (this.idx < this.states.length - 1) this.states = this.states.slice(0, this.idx + 1);
+        this.states.push(state); this.idx = this.states.length - 1;
+        if (this.lastUndo) this.pendingRedo = state;
+    }
+    undo() {
+        if (!this.canUndo()) return null;
+        this.idx--; this.lastUndo = true; this.pendingRedo = null;
+        const s = this.states[this.idx];
+        return { pixels: s.pixels.map(r => new Uint8Array(r)), attributes: s.attributes.map(r => r.map(a => ({ ...a }))), info: this.getInfo() };
+    }
+    redo() {
+        if (this.pendingRedo && this.lastUndo) { this.lastUndo = false; return { pixels: this.pendingRedo.pixels.map(r => new Uint8Array(r)), attributes: this.pendingRedo.attributes.map(r => r.map(a => ({ ...a }))), info: this.getInfo() }; }
+        if (!this.canRedo()) return null;
+        this.idx++; this.lastUndo = false;
+        const s = this.states[this.idx];
+        return { pixels: s.pixels.map(r => new Uint8Array(r)), attributes: s.attributes.map(r => r.map(a => ({ ...a }))), info: this.getInfo() };
+    }
+    canUndo() { return this.idx > 0; }
+    canRedo() { return this.pendingRedo || this.idx < this.states.length - 1; }
+    hasRedo() { return this.idx < this.states.length - 1; }
+    getInfo() {
+        const undoCnt = this.idx; let redoCnt = this.states.length - 1 - this.idx;
+        if (this.pendingRedo) redoCnt = Math.max(1, redoCnt);
+        return { undoCount: undoCnt, redoCount: redoCnt, totalStates: this.states.length, currentIndex: this.idx, hasPendingRedo: !!this.pendingRedo, branchCount: this.branches.size };
+    }
+    cleanup() {
+        if (this.states.length > this.max) { const ex = this.states.length - this.max; this.states.splice(0, ex); this.idx -= ex; if (this.idx < 0) this.idx = 0; }
+        if (this.branches.size > 10) { const sorted = Array.from(this.branches.entries()).sort((a, b) => b[1].createdAt - a[1].createdAt); this.branches.clear(); sorted.slice(0, 10).forEach(([id, branch]) => this.branches.set(id, branch)); }
+    }
+    getMemUsage() {
+        const stateSize = this.states.length * (256 * 192 + 32 * 24 * 64);
+        const branchSize = Array.from(this.branches.values()).reduce((t, b) => t + b.states.length * (256 * 192 + 32 * 24 * 64), 0);
+        return { mainStates: this.states.length, branchStates: Array.from(this.branches.values()).reduce((t, b) => t + b.states.length, 0), totalMemoryMB: ((stateSize + branchSize) / (1024 * 1024)).toFixed(2), branches: this.branches.size };
+    }
+    clear() { this.states = []; this.idx = -1; this.branches.clear(); this.branchId = 'main'; this.branchCnt = 0; this.lastUndo = false; this.pendingRedo = null; }
+}
+
+class ZXSpectrumPixelSmasher {
+    constructor() {
+        try {
+            this.initErrorHandling();
+            this.ZX_COLORS = [
+                { name: 'Black', normal: '#000000', bright: '#000000' },
+                { name: 'Blue', normal: '#0000D7', bright: '#0000FF' },
+                { name: 'Red', normal: '#D70000', bright: '#FF0000' },
+                { name: 'Magenta', normal: '#D700D7', bright: '#FF00FF' },
+                { name: 'Green', normal: '#00D700', bright: '#00FF00' },
+                { name: 'Cyan', normal: '#00D7D7', bright: '#00FFFF' },
+                { name: 'Yellow', normal: '#D7D700', bright: '#FFFF00' },
+                { name: 'White', normal: '#E8E8E8', bright: '#FFFFFF' }
+            ];
+            this.SCREEN = { WIDTH: 256, HEIGHT: 192, CHAR_WIDTH: 32, CHAR_HEIGHT: 24, CELL_SIZE: 8 };
+            this.MAX_FILE_SIZE = 50 * 1024 * 1024; this.PERF_WARNING_SIZE = 10 * 1024 * 1024; this.maxUndo = 30;
+            this.canvas = null; this.ctx = null; this.pixels = []; this.attributes = [];
+            this.tool = 'brush'; this.shape = 'line'; this.brushSize = 1; this.ink = 0; this.paper = 7; this.bright = false; this.flash = false;
+            this.grid1x1 = false; this.grid8x8 = false; this.grid16x16 = false; this.zoom = 2;
+            this.drawing = false; this.lastPos = null; this.startPos = null; this.preview = false; this.previewStart = null; this.previewEnd = null;
+            this.renderScheduled = false; this.flashPhase = false; this.flashInt = null; this.memInt = null; this.lastGoodState = null; this.autoSaveInt = null;
+            this.cursorScheduled = false; this.drawStartTime = null; this.memCache = null; this.previewCanvas = null; this.previewCtx = null;
+            this.init();
+        } catch (e) { this.handleCriticalError('Constructor Error', e); }
+    }
+    
+    initErrorHandling() {
+        window.addEventListener('error', e => this.handleCriticalError('JS Error', e.error));
+        window.addEventListener('unhandledrejection', e => this.handleCriticalError('Promise Rejection', e.reason));
+    }
+    
+    init() {
+        try {
+            this.canvas = document.getElementById('canvas'); this.ctx = this.canvas.getContext('2d');
+            if (!this.canvas || !this.ctx) throw new Error('Canvas not available');
+            this.initData(); this.setupEvents(); this.createPalette(); this.updateColors(); this.updateZoom();
+            this.startFlash(); this.startMemMon(); this.startAutoSave(); this.render(); this.saveState('initial-blank'); this.updateMem();
+            this.updateStatus('✅ System Ready', 'success');
+        } catch (e) { this.handleCriticalError('Init Error', e); }
+    }
+    
+    initData() {
+        try {
+            this.pixels = Array(this.SCREEN.HEIGHT).fill().map(() => new Uint8Array(this.SCREEN.WIDTH));
+            this.attributes = Array(this.SCREEN.CHAR_HEIGHT).fill().map(() => Array(this.SCREEN.CHAR_WIDTH).fill().map(() => ({ ink: 0, paper: 7, bright: false, flash: false })));
+            this.history = new HistoryManager(this.maxUndo);
+        } catch (e) { throw new Error(`Data init failed: ${e.message}`); }
+    }
+    
+    setupEvents() {
+        try {
+            this.boundMouseUp = e => this.safe(() => this.handleGlobalMouseUp(e));
+            this.boundDocLeave = e => this.safe(() => this.handleDocLeave(e));
+            this.boundKeyboard = e => this.safe(() => this.handleKeyboard(e));
+            
+            this.canvas.addEventListener('mousedown', e => this.safe(() => this.handleMouseDown(e)));
+            this.canvas.addEventListener('mousemove', e => this.safe(() => this.handleMouseMove(e)));
+            this.canvas.addEventListener('mouseup', e => this.safe(() => this.handleMouseUp(e)));
+            this.canvas.addEventListener('contextmenu', e => e.preventDefault());
+            this.canvas.addEventListener('mouseleave', e => this.safe(() => this.handleMouseLeave(e)));
+            
+            document.addEventListener('mouseup', this.boundMouseUp);
+            document.addEventListener('mouseleave', this.boundDocLeave);
+            document.querySelectorAll('.tool').forEach(t => t.addEventListener('click', e => this.safe(() => this.selectTool(e.target.dataset.tool))));
+            document.querySelectorAll('.shape-tool').forEach(t => t.addEventListener('click', e => this.safe(() => this.selectShape(e.target.dataset.shape))));
+            
+            const brushSize = document.getElementById('brush-size');
+            if (brushSize) brushSize.addEventListener('input', e => this.safe(() => { this.brushSize = parseInt(e.target.value); document.getElementById('size-display').textContent = this.brushSize + 'px'; }));
+            
+            const zoomSlider = document.getElementById('zoom');
+            if (zoomSlider) zoomSlider.addEventListener('input', e => this.safe(() => this.setZoom(parseFloat(e.target.value))));
+            
+            document.addEventListener('keydown', this.boundKeyboard);
+        } catch (e) { throw new Error(`Event setup failed: ${e.message}`); }
+    }
+    
+    safe(fn) { try { return fn(); } catch (e) { this.handleError('Operation Failed', e); return null; } }
+    
+    handleError(title, error, critical = false) {
+        console.error(`${title}:`, error);
+        if (critical) this.handleCriticalError(title, error); else { this.showError(title, this.getUserMsg(error)); this.updateStatus(`⚠️ ${title}`, 'warning'); }
+    }
+    
+    handleCriticalError(title, error) {
+        console.error(`CRITICAL ${title}:`, error); this.emergencySave();
+        this.showError(`Critical Error: ${title}`, `${this.getUserMsg(error)}\n\nWork emergency saved.`, true);
+        this.updateStatus(`💥 Critical Error: ${title}`, 'error');
+    }
+    
+    getUserMsg(error) {
+        const msg = error.message || error.toString();
+        if (msg.includes('Out of memory')) return 'Low memory. Close other apps.';
+        if (msg.includes('File too large')) return 'File too large. Use smaller file.';
+        if (msg.includes('Invalid file')) return 'File format not supported or corrupted.';
+        if (msg.includes('Canvas not available')) return 'Browser graphics not supported.';
+        return 'Unexpected error. Try refreshing page.';
+    }
+    
+    showError(title, msg, critical = false) {
+        const modal = document.getElementById('errorModal'), titleEl = document.getElementById('errorTitle'), msgEl = document.getElementById('errorMessage');
+        if (modal && titleEl && msgEl) { titleEl.textContent = title; msgEl.textContent = msg; modal.style.display = 'flex'; }
+    }
+    
+    hideError() { const modal = document.getElementById('errorModal'); if (modal) modal.style.display = 'none'; }
+    
+    recoverFromError() {
+        try {
+            this.hideError();
+            if (this.lastGoodState) {
+                this.pixels = this.lastGoodState.pixels.map(r => new Uint8Array(r));
+                this.attributes = this.lastGoodState.attributes.map(r => r.map(a => ({ ...a })));
+                this.render(); this.updateStatus('✅ Recovered', 'success');
+            } else { this.cleanup(); this.updateStatus('✅ Reset', 'success'); }
+        } catch (e) { this.handleCriticalError('Recovery Failed', e); }
+    }
+    
+    emergencySave() {
+        try { if (this.pixels && this.pixels.length > 0) localStorage.setItem('zx_emergency', JSON.stringify({ pixels: this.pixels.map(r => Array.from(r)), attributes: this.attributes, timestamp: Date.now() })); } catch (e) {}
+    }
+    
+    startAutoSave() { this.autoSaveInt = setInterval(() => { try { if (this.pixels && this.history && this.history.getInfo().totalStates > 0) this.lastGoodState = { pixels: this.pixels.map(r => new Uint8Array(r)), attributes: this.attributes.map(r => r.map(a => ({ ...a }))) }; } catch (e) {} }, 30000); }
+    
+    updateStatus(msg, type = 'info') {
+        const statusEl = document.getElementById('status'), dotEl = document.getElementById('statusDot');
+        if (statusEl) statusEl.textContent = msg;
+        if (dotEl) dotEl.className = `status-dot ${type === 'error' ? 'error' : type === 'warning' ? 'warning' : ''}`;
+    }
+    
+    createPalette() {
+        this.safe(() => {
+            const pal = document.getElementById('palette'); if (!pal) return; pal.innerHTML = '';
+            this.ZX_COLORS.forEach((c, i) => {
+                const sw = document.createElement('div'); sw.className = 'color';
+                sw.style.backgroundColor = this.bright ? c.bright : c.normal; sw.title = `${c.name}`;
+                if (i === this.ink) sw.classList.add('ink-selected'); if (i === this.paper) sw.classList.add('paper-selected');
+                sw.addEventListener('click', () => this.setInk(i)); sw.addEventListener('contextmenu', e => { e.preventDefault(); this.setPaper(i); });
+                pal.appendChild(sw);
+            });
+        });
+    }
+    
+    selectTool(tool) {
+        this.safe(() => {
+            this.tool = tool; this.preview = false;
+            document.querySelectorAll('.tool').forEach(t => t.classList.remove('active'));
+            const toolEl = document.querySelector(`[data-tool="${tool}"]`); if (toolEl) toolEl.classList.add('active');
+            this.canvas.style.cursor = { brush: 'crosshair', eraser: 'grab', fill: 'pointer', shapes: 'crosshair' }[tool] || 'crosshair';
+            this.render(); this.updateStatus(`🛠️ ${tool.charAt(0).toUpperCase() + tool.slice(1)} selected`, 'success');
+        });
+    }
+    
+    selectShape(shape) {
+        this.safe(() => {
+            this.shape = shape; this.selectTool('shapes');
+            document.querySelectorAll('.shape-tool').forEach(t => t.classList.remove('active'));
+            const shapeEl = document.querySelector(`[data-shape="${shape}"]`); if (shapeEl) shapeEl.classList.add('active');
+        });
+    }
+    
+    setInk(i) { this.safe(() => { this.ink = i; this.createPalette(); this.updateColors(); this.updateStatus(`🎨 Ink: ${this.ZX_COLORS[i].name}`, 'success'); }); }
+    setPaper(i) { this.safe(() => { this.paper = i; this.createPalette(); this.updateColors(); this.updateStatus(`🎨 Paper: ${this.ZX_COLORS[i].name}`, 'success'); }); }
+    
+    updateColors() {
+        this.safe(() => {
+            const colorSet = this.bright ? 'bright' : 'normal', inkEl = document.getElementById('ink-color'), paperEl = document.getElementById('paper-color');
+            if (inkEl) inkEl.style.backgroundColor = this.ZX_COLORS[this.ink][colorSet];
+            if (paperEl) paperEl.style.backgroundColor = this.ZX_COLORS[this.paper][colorSet];
+        });
+    }
+    
+    toggleBright() {
+        this.safe(() => {
+            this.bright = !this.bright; const btn = document.getElementById('bright-toggle');
+            if (btn) btn.classList.toggle('active', this.bright);
+            this.createPalette(); this.updateColors(); this.render(); this.updateStatus(this.bright ? '✨ Bright ON' : 'Bright OFF', 'success');
+        });
+    }
+    
+    toggleFlash() {
+        this.safe(() => {
+            this.flash = !this.flash; const btn = document.getElementById('flash-toggle');
+            if (btn) btn.classList.toggle('active', this.flash);
+            this.updateStatus(this.flash ? '⚡ Flash ON' : 'Flash OFF', 'success');
+        });
+    }
+    
+    toggleGrid(type) {
+        this.safe(() => {
+            let state, el, btn, txt;
+            switch (type) {
+                case '1x1': this.grid1x1 = !this.grid1x1; state = this.grid1x1; el = document.getElementById('grid-1x1'); btn = document.getElementById('btn-grid-1x1'); txt = this.grid1x1 ? '📏 1×1 Grid ON' : '1×1 Grid OFF'; break;
+                case '8x8': this.grid8x8 = !this.grid8x8; state = this.grid8x8; el = document.getElementById('grid-8x8'); btn = document.getElementById('btn-grid-8x8'); txt = this.grid8x8 ? '📏 8×8 Grid ON' : '8×8 Grid OFF'; break;
+                case '16x16': this.grid16x16 = !this.grid16x16; state = this.grid16x16; el = document.getElementById('grid-16x16'); btn = document.getElementById('btn-grid-16x16'); txt = this.grid16x16 ? '📏 16×16 Grid ON' : '16×16 Grid OFF'; break;
+                default: return;
+            }
+            if (el && btn) { el.classList.toggle('active', state); btn.classList.toggle('active', state); this.updateStatus(txt, 'success'); }
+        });
+    }
+    
+    startFlash() {
+        if (this.flashInt) clearInterval(this.flashInt);
+        this.flashInt = setInterval(() => { this.flashPhase = !this.flashPhase; if (this.hasFlash()) this.scheduleRender(); }, 333);
+    }
+    
+    stopFlash() { if (this.flashInt) { clearInterval(this.flashInt); this.flashInt = null; } }
+    
+    scheduleRender() { if (!this.renderScheduled) { this.renderScheduled = true; requestAnimationFrame(() => { this.render(); this.renderScheduled = false; }); } }
+    
+    startMemMon() {
+        this.updateMem();
+        this.memInt = setInterval(() => this.updateMem(), this.drawing ? 5000 : 3000);
+    }
+    
+    stopMemMon() { if (this.memInt) { clearInterval(this.memInt); this.memInt = null; } }
+    
+    calcMem() {
+        try {
+            if (!this.history) return { totalMB: '0.00', undoStates: 0, undoMB: '0.00' };
+            if (this.memCache && Date.now() - this.memCache.timestamp < 1000) return this.memCache.data;
+            const histMem = this.history.getMemUsage(), imgMem = this.SCREEN.WIDTH * this.SCREEN.HEIGHT * 4, canvasMem = imgMem, jsOver = 15000;
+            const totalBytes = parseFloat(histMem.totalMemoryMB) * 1024 * 1024 + imgMem + canvasMem + jsOver;
+            const result = { totalMB: (totalBytes / (1024 * 1024)).toFixed(2), undoStates: histMem.mainStates, undoMB: histMem.totalMemoryMB, branchStates: histMem.branchStates, branches: histMem.branches };
+            this.memCache = { data: result, timestamp: Date.now() }; return result;
+        } catch (e) { return { totalMB: '0.00', undoStates: 0, undoMB: '0.00' }; }
+    }
+    
+    updateMem() {
+        this.safe(() => {
+            const mem = this.calcMem(), disp = document.getElementById('memory-display');
+            if (disp) {
+                let d = `${mem.totalMB} MB total<br>${mem.undoStates} states (${mem.undoMB} MB)`;
+                if (mem.branchStates > 0) d += `<br>${mem.branchStates} branch states (${mem.branches} branches)`;
+                if (this.history) { const inf = this.history.getInfo(); d += `<br>Position: ${inf.currentIndex + 1}/${inf.totalStates}`; if (inf.hasPendingRedo) d += ' (redo ready)'; }
+                disp.innerHTML = d;
+            }
+        });
+    }
+    
+    hasFlash() { try { return this.attributes.some(r => r.some(a => a.flash)); } catch (e) { return false; } }
+    
+    handleMouseDown(e) {
+        this.safe(() => {
+            const pos = this.getMousePos(e); if (!pos || !pos.inBounds) return;
+            this.drawing = true; this.lastPos = pos; this.startPos = pos; this.drawStartTime = Date.now();
+            if (['brush', 'eraser', 'fill'].includes(this.tool)) { this.performAction(pos.x, pos.y); this.scheduleRender(); }
+            else if (this.tool === 'shapes') { this.preview = true; this.previewStart = pos; this.previewEnd = pos; this.scheduleRender(); }
+        });
+    }
+    
+    handleMouseMove(e) {
+        this.safe(() => {
+            const pos = this.getMousePos(e); if (!pos) return;
+            if (!this.cursorScheduled) {
+                this.cursorScheduled = true;
+                requestAnimationFrame(() => { const cur = document.getElementById('cursor'); if (cur) cur.textContent = `${pos.x}, ${pos.y}`; this.cursorScheduled = false; });
+            }
+            if (this.drawing && this.lastPos && ['brush', 'eraser'].includes(this.tool)) {
+                if (pos.inBounds) {
+                    if (this.lastPos.inBounds) this.drawLine(this.lastPos.x, this.lastPos.y, pos.x, pos.y); else this.performAction(pos.x, pos.y);
+                    this.scheduleRender();
+                }
+                this.lastPos = pos;
+            } else if (this.drawing && this.preview && this.tool === 'shapes') { this.previewEnd = pos; this.scheduleRender(); }
+        });
+    }
+    
+    handleMouseUp(e) { this.stopDrawing(); }
+    handleMouseLeave(e) { if (this.drawing && this.lastPos) this.lastPos = { x: -1, y: -1, inBounds: false }; }
+    handleGlobalMouseUp(e) { this.stopDrawing(); }
+    handleDocLeave(e) {}
+    
+    stopDrawing() {
+        this.safe(() => {
+            if (!this.drawing) return;
+            let save = false; const dur = Date.now() - (this.drawStartTime || 0);
+            if (this.tool === 'shapes' && this.startPos && this.previewEnd) { this.preview = false; this.drawShape(this.startPos, this.previewEnd); this.scheduleRender(); save = true; }
+            else if (this.tool === 'fill') save = true;
+            else if (['brush', 'eraser'].includes(this.tool) && dur > 50) save = true;
+            if (save) this.saveState('draw');
+            this.drawing = false; this.lastPos = null; this.startPos = null; this.preview = false; this.previewStart = null; this.previewEnd = null; this.drawStartTime = null;
+        });
+    }
+    
+    getMousePos(e) {
+        try {
+            const rect = this.canvas.getBoundingClientRect(), scaleX = this.SCREEN.WIDTH / rect.width, scaleY = this.SCREEN.HEIGHT / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX), y = Math.floor((e.clientY - rect.top) * scaleY);
+            return { x, y, inBounds: x >= 0 && x <= 255 && y >= 0 && y <= 191 };
+        } catch (e) { return null; }
+    }
+    
+    performAction(x, y) {
+        this.safe(() => {
+            if (x < 0 || x > 255 || y < 0 || y > 191) return;
+            switch (this.tool) {
+                case 'brush': this.drawBrush(x, y, 1); break;
+                case 'eraser': this.drawBrush(x, y, 0); break;
+                case 'fill': this.floodFill(x, y); break;
+            }
+        });
+    }
+    
+    drawPixel(x, y, val) {
+        this.safe(() => {
+            if (x < 0 || x > 255 || y < 0 || y > 191) return;
+            this.pixels[y][x] = val; const cellX = Math.floor(x / this.SCREEN.CELL_SIZE), cellY = Math.floor(y / this.SCREEN.CELL_SIZE);
+            if (cellX >= 0 && cellX < this.SCREEN.CHAR_WIDTH && cellY >= 0 && cellY < this.SCREEN.CHAR_HEIGHT)
+                this.attributes[cellY][cellX] = { ink: this.ink, paper: this.paper, bright: this.bright, flash: this.flash };
+        });
+    }
+    
+    drawBrush(x, y, val) {
+        this.safe(() => {
+            const r = Math.floor(this.brushSize / 2);
+            for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+                const nx = x + dx, ny = y + dy, dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist <= r + 0.5) this.drawPixel(nx, ny, val);
+            }
+        });
+    }
+    
+    drawLine(x0, y0, x1, y1) {
+        this.safe(() => {
+            const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+            let err = dx - dy, x = x0, y = y0;
+            while (true) {
+                if (this.tool === 'brush' || this.tool === 'shapes') this.drawBrush(x, y, 1); else if (this.tool === 'eraser') this.drawBrush(x, y, 0);
+                if (x === x1 && y === y1) break;
+                const e2 = 2 * err; if (e2 > -dy) { err -= dy; x += sx; } if (e2 < dx) { err += dx; y += sy; }
+            }
+        });
+    }
+    
+    floodFill(sx, sy) {
+        this.safe(() => {
+            if (sx < 0 || sx > 255 || sy < 0 || sy > 191) return;
+            const target = this.pixels[sy][sx], fill = 1;
+            if (target === fill) return;
+            const stack = [{ x: sx, y: sy }], visited = new Uint8Array(this.SCREEN.WIDTH * this.SCREEN.HEIGHT);
+            let changed = 0;
+            while (stack.length > 0 && changed < 50000) {
+                const { x, y } = stack.pop(); if (x < 0 || x > 255 || y < 0 || y > 191) continue;
+                const key = y * this.SCREEN.WIDTH + x; if (visited[key] || this.pixels[y][x] !== target) continue;
+                let lx = x, rx = x;
+                while (lx >= 0 && !visited[y * this.SCREEN.WIDTH + lx] && this.pixels[y][lx] === target) lx--; lx++;
+                while (rx <= 255 && !visited[y * this.SCREEN.WIDTH + rx] && this.pixels[y][rx] === target) rx++; rx--;
+                for (let fx = lx; fx <= rx; fx++) {
+                    const fk = y * this.SCREEN.WIDTH + fx; visited[fk] = 1; this.drawPixel(fx, y, fill); changed++;
+                    if (y > 0 && !visited[(y - 1) * this.SCREEN.WIDTH + fx] && this.pixels[y - 1][fx] === target) stack.push({ x: fx, y: y - 1 });
+                    if (y < 191 && !visited[(y + 1) * this.SCREEN.WIDTH + fx] && this.pixels[y + 1][fx] === target) stack.push({ x: fx, y: y + 1 });
+                }
+            }
+            if (changed >= 50000) this.updateStatus('⚠️ Fill limited for performance', 'warning');
+        });
+    }
+    
+    drawShape(start, end) {
+        this.safe(() => {
+            switch (this.shape) {
+                case 'line': this.drawLine(start.x, start.y, end.x, end.y); break;
+                case 'rect': this.drawRect(start, end); break;
+                case 'circle': this.drawCircle(start, end); break;
+                case 'triangle': this.drawTriangle(start, end); break;
+                case 'diamond': this.drawDiamond(start, end); break;
+                case 'star': this.drawStar(start, end); break;
+            }
+        });
+    }
+    
+    drawRect(s, e) {
+        const l = Math.min(s.x, e.x), r = Math.max(s.x, e.x), t = Math.min(s.y, e.y), b = Math.max(s.y, e.y);
+        for (let x = l; x <= r; x++) { this.drawBrush(x, t, 1); this.drawBrush(x, b, 1); }
+        for (let y = t; y <= b; y++) { this.drawBrush(l, y, 1); this.drawBrush(r, y, 1); }
+    }
+    
+    drawCircle(s, e) {
+        const cx = s.x, cy = s.y, rad = Math.round(Math.sqrt((e.x - s.x) ** 2 + (e.y - s.y) ** 2));
+        let x = 0, y = rad, d = 3 - 2 * rad;
+        const plot = (px, py) => {
+            this.drawBrush(cx + px, cy + py, 1); this.drawBrush(cx + px, cy - py, 1); this.drawBrush(cx - px, cy + py, 1); this.drawBrush(cx - px, cy - py, 1);
+            this.drawBrush(cx + py, cy + px, 1); this.drawBrush(cx + py, cy - px, 1); this.drawBrush(cx - py, cy + px, 1); this.drawBrush(cx - py, cy - px, 1);
+        };
+        while (x <= y) { plot(x, y); x++; if (d > 0) { y--; d = d + 4 * (x - y) + 10; } else d = d + 4 * x + 6; }
+    }
+    
+    drawTriangle(s, e) {
+        const bx1 = s.x, by1 = s.y, bx2 = e.x, by2 = e.y, cx = Math.round((bx1 + bx2) / 2), cy = Math.round((by1 + by2) / 2), h = Math.round(Math.abs(bx2 - bx1) * 0.7), ax = cx, ay = cy - h;
+        this.drawLine(bx1, by1, bx2, by2); this.drawLine(bx1, by1, ax, ay); this.drawLine(bx2, by2, ax, ay);
+    }
+    
+    drawDiamond(s, e) {
+        const cx = s.x, cy = s.y, w = Math.abs(e.x - s.x), h = Math.abs(e.y - s.y), tx = cx, ty = cy - h, rx = cx + w, ry = cy, bx = cx, by = cy + h, lx = cx - w, ly = cy;
+        this.drawLine(tx, ty, rx, ry); this.drawLine(rx, ry, bx, by); this.drawLine(bx, by, lx, ly); this.drawLine(lx, ly, tx, ty);
+    }
+    
+    drawStar(s, e) {
+        const cx = s.x, cy = s.y, outerR = Math.round(Math.sqrt((e.x - s.x) ** 2 + (e.y - s.y) ** 2)), innerR = Math.round(outerR * 0.4);
+        if (outerR < 3) return;
+        const pts = [];
+        for (let i = 0; i < 10; i++) {
+            const ang = (i * Math.PI / 5) - (Math.PI / 2), rad = i % 2 === 0 ? outerR : innerR;
+            const x = Math.round(cx + rad * Math.cos(ang)), y = Math.round(cy + rad * Math.sin(ang));
+            pts.push({ x, y });
+        }
+        for (let i = 0; i < pts.length; i++) { const next = (i + 1) % pts.length; this.drawLine(pts[i].x, pts[i].y, pts[next].x, pts[next].y); }
+    }
+    
+    render() {
+        this.safe(() => {
+            if (!this.ctx) return;
+            const imgData = this.ctx.createImageData(this.SCREEN.WIDTH, this.SCREEN.HEIGHT), data = imgData.data;
+            const normCols = this.ZX_COLORS.map(c => this.hexToRgb(c.normal)), brightCols = this.ZX_COLORS.map(c => this.hexToRgb(c.bright));
+            for (let y = 0; y < this.SCREEN.HEIGHT; y++) {
+                const cellY = Math.floor(y / this.SCREEN.CELL_SIZE); if (cellY >= this.SCREEN.CHAR_HEIGHT) continue;
+                for (let x = 0; x < this.SCREEN.WIDTH; x++) {
+                    const cellX = Math.floor(x / this.SCREEN.CELL_SIZE); if (cellX >= this.SCREEN.CHAR_WIDTH) continue;
+                    const attr = this.attributes[cellY][cellX], pixVal = this.pixels[y][x], colArr = attr.bright ? brightCols : normCols;
+                    let ink = attr.ink, paper = attr.paper;
+                    if (attr.flash && this.flashPhase) [ink, paper] = [paper, ink];
+                    const colIdx = pixVal ? ink : paper, col = colArr[colIdx], pixIdx = (y * this.SCREEN.WIDTH + x) * 4;
+                    data[pixIdx] = col.r; data[pixIdx + 1] = col.g; data[pixIdx + 2] = col.b; data[pixIdx + 3] = 255;
+                }
+            }
+            this.ctx.putImageData(imgData, 0, 0);
+            if (this.preview && this.previewStart && this.previewEnd) this.renderPreview();
+        });
+    }
+    
+    hexToRgb(hex) {
+        try { return { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) }; }
+        catch (e) { return { r: 0, g: 0, b: 0 }; }
+    }
+    
+    renderPreview() {
+        this.safe(() => {
+            if (!this.previewCanvas) { this.previewCanvas = document.createElement('canvas'); this.previewCanvas.width = this.SCREEN.WIDTH; this.previewCanvas.height = this.SCREEN.HEIGHT; this.previewCtx = this.previewCanvas.getContext('2d'); }
+            this.previewCtx.drawImage(this.canvas, 0, 0);
+            const origPix = this.pixels.map(r => new Uint8Array(r)), origAttr = this.attributes.map(r => r.map(a => ({ ...a })));
+            this.drawShape(this.previewStart, this.previewEnd);
+            const colSet = this.bright ? 'bright' : 'normal', prevCol = this.ZX_COLORS[this.ink][colSet];
+            this.ctx.fillStyle = prevCol; this.ctx.globalAlpha = 0.7;
+            for (let y = 0; y < this.SCREEN.HEIGHT; y++) for (let x = 0; x < this.SCREEN.WIDTH; x++) if (this.pixels[y][x] !== origPix[y][x]) this.ctx.fillRect(x, y, 1, 1);
+            this.ctx.globalAlpha = 1.0; this.pixels = origPix; this.attributes = origAttr;
+        });
+    }
+    
+    setZoom(lvl) { this.safe(() => { this.zoom = Math.max(1, Math.min(8, lvl)); const zs = document.getElementById('zoom'); if (zs) zs.value = this.zoom; this.updateZoom(); }); }
+    
+    updateZoom() {
+        this.safe(() => {
+            const size = this.SCREEN.WIDTH * this.zoom, height = this.SCREEN.HEIGHT * this.zoom;
+            this.canvas.style.width = size + 'px'; this.canvas.style.height = height + 'px';
+            ['grid-1x1', 'grid-8x8', 'grid-16x16'].forEach(id => {
+                const grid = document.getElementById(id); if (grid) { grid.style.width = size + 'px'; grid.style.height = height + 'px'; grid.style.left = '0px'; grid.style.top = '0px'; }
+            });
+            const g1 = document.getElementById('grid-1x1'), g8 = document.getElementById('grid-8x8'), g16 = document.getElementById('grid-16x16');
+            if (g1) g1.style.setProperty('--grid-1x1-size', (1 * this.zoom) + 'px');
+            if (g8) g8.style.setProperty('--grid-8x8-size', (8 * this.zoom) + 'px');
+            if (g16) g16.style.setProperty('--grid-16x16-size', (16 * this.zoom) + 'px');
+            const zDisp = document.getElementById('zoom-display'); if (zDisp) zDisp.textContent = Math.round(this.zoom * 100) + '%';
+        });
+    }
+    
+    saveState(type = 'draw') { this.safe(() => { if (!this.history) this.history = new HistoryManager(this.maxUndo); this.history.saveState(this.pixels, this.attributes, type); this.updateMem(); }); }
+    
+    undo() {
+        this.safe(() => {
+            if (!this.history || !this.history.canUndo()) { this.updateStatus('Nothing to undo', 'warning'); return; }
+            const res = this.history.undo(); if (res) { this.pixels = res.pixels; this.attributes = res.attributes; this.render(); const inf = res.info;
+                let msg = `↶ Undo (${inf.undoCount} more`; if (inf.redoCount > 0) msg += `, ${inf.redoCount} redo`; if (inf.hasPendingRedo) msg += `, smart redo`; msg += ')';
+                this.updateStatus(msg, 'success'); this.updateMem(); }
+        });
+    }
+    
+    redo() {
+        this.safe(() => {
+            if (!this.history || !this.history.canRedo()) { this.updateStatus('Nothing to redo', 'warning'); return; }
+            const res = this.history.redo(); if (res) { this.pixels = res.pixels; this.attributes = res.attributes; this.render(); const inf = res.info;
+                let msg = `↷ Redo (${inf.undoCount} undo`; if (inf.redoCount > 0) msg += `, ${inf.redoCount} more redo`; msg += ')';
+                this.updateStatus(msg, 'success'); this.updateMem(); }
+        });
+    }
+    
+    clearCanvas() {
+        this.safe(() => {
+            this.pixels = Array(this.SCREEN.HEIGHT).fill().map(() => new Uint8Array(this.SCREEN.WIDTH));
+            this.attributes = Array(this.SCREEN.CHAR_HEIGHT).fill().map(() => Array(this.SCREEN.CHAR_WIDTH).fill().map(() => ({ ink: 0, paper: 7, bright: false, flash: false })));
+            this.scheduleRender(); this.saveState('clear'); this.updateStatus('📄 Canvas cleared', 'success');
+        });
+    }
+    
+    safeReset() { if (this.history && this.history.getInfo().totalStates > 1) { if (confirm('Reset? This clears all work.')) this.cleanup(); } else this.cleanup(); }
+    
+    cleanup() {
+        this.safe(() => {
+            if (this.history) this.history.clear(); this.initData();
+            this.tool = 'brush'; this.shape = 'line'; this.brushSize = 1; this.ink = 0; this.paper = 7; this.bright = false; this.flash = false;
+            this.grid1x1 = false; this.grid8x8 = false; this.grid16x16 = false; this.zoom = 2;
+            const els = { 'brush-size': 1, 'size-display': '1px', 'zoom': 2, 'bright-toggle': false, 'flash-toggle': false, 'btn-grid-1x1': false, 'btn-grid-8x8': false, 'btn-grid-16x16': false };
+            Object.entries(els).forEach(([id, val]) => { const el = document.getElementById(id); if (el) { if (typeof val === 'boolean') el.classList.toggle('active', val); else if (typeof val === 'string') el.textContent = val; else el.value = val; } });
+            ['grid-1x1', 'grid-8x8', 'grid-16x16'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
+            document.querySelectorAll('.tool').forEach(t => t.classList.remove('active')); const bt = document.querySelector('[data-tool="brush"]'); if (bt) bt.classList.add('active');
+            document.querySelectorAll('.shape-tool').forEach(t => t.classList.remove('active')); const lt = document.querySelector('[data-shape="line"]'); if (lt) lt.classList.add('active');
+            this.createPalette(); this.updateColors(); this.updateZoom(); this.scheduleRender(); this.saveState('reset-blank'); this.updateStatus('🔄 Reset', 'success');
+        });
+    }
+    
+    saveImage() { this.safe(() => { const l = document.createElement('a'); l.download = 'zx_pixel_smasher_v2.6_' + Date.now() + '.png'; l.href = this.canvas.toDataURL(); l.click(); this.updateStatus('💾 PNG saved', 'success'); }); }
+    
+    saveSCR() {
+        this.safe(() => {
+            const scrData = new Uint8Array(6912);
+            for (let y = 0; y < this.SCREEN.HEIGHT; y++) for (let charX = 0; charX < this.SCREEN.CHAR_WIDTH; charX++) {
+                const charY = Math.floor(y / 8), pixY = y % 8, addr = (charY * 256) + (pixY * 32) + charX; let byteVal = 0;
+                for (let bit = 0; bit < 8; bit++) { const pixX = charX * 8 + bit; if (this.pixels[y] && this.pixels[y][pixX]) byteVal |= (1 << (7 - bit)); }
+                if (addr < 6144) scrData[addr] = byteVal;
+            }
+            for (let charY = 0; charY < this.SCREEN.CHAR_HEIGHT; charY++) for (let charX = 0; charX < this.SCREEN.CHAR_WIDTH; charX++) {
+                const attrAddr = 6144 + (charY * 32) + charX, attr = this.attributes[charY][charX]; let attrByte = attr.ink | (attr.paper << 3);
+                if (attr.bright) attrByte |= 0x40; if (attr.flash) attrByte |= 0x80; scrData[attrAddr] = attrByte;
+            }
+            const blob = new Blob([scrData], { type: 'application/octet-stream' }), link = document.createElement('a');
+            link.href = URL.createObjectURL(blob); link.download = `zx_pixel_smasher_v2.6_${Date.now()}.scr`; link.click(); URL.revokeObjectURL(link.href);
+            this.updateStatus('📼 SCR saved', 'success');
+        });
+    }
+    
+    loadFile() {
+        this.safe(() => {
+            const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.scr,.png,.jpg,.jpeg,.gif,.bmp,.webp';
+            inp.onchange = e => this.safe(() => { const file = e.target.files[0]; if (!file) return; this.validateFile(file); });
+            inp.click();
+        });
+    }
+    
+    validateFile(file) {
+        this.safe(() => {
+            if (file.size > this.MAX_FILE_SIZE) throw new Error(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max ${this.MAX_FILE_SIZE / 1024 / 1024}MB.`);
+            if (file.size > this.PERF_WARNING_SIZE) this.showPerfWarn();
+            const validImg = /^image\/(png|jpe?g|gif|bmp|webp)$/i, isSCR = file.name.toLowerCase().endsWith('.scr'), isValidImg = validImg.test(file.type);
+            if (!isSCR && !isValidImg) throw new Error('Invalid file type. Use SCR or image files.');
+            if (isSCR) this.loadSCR(file); else this.loadImg(file);
+        });
+    }
+    
+    showPerfWarn() { const w = document.getElementById('perfWarning'); if (w) { w.style.display = 'block'; setTimeout(() => { if (w) w.style.display = 'none'; }, 10000); } }
+    
+    loadSCR(file) {
+        const reader = new FileReader();
+        reader.onload = e => this.safe(() => {
+            const data = new Uint8Array(e.target.result); if (data.length !== 6912) throw new Error('Invalid SCR file size');
+            this.parseSCR(data); this.render(); this.saveState('load-scr'); this.updateStatus('📼 SCR loaded', 'success');
+        });
+        reader.onerror = () => this.handleError('File Read Error', new Error('Failed to read SCR'));
+        reader.readAsArrayBuffer(file);
+    }
+    
+    parseSCR(data) {
+        this.safe(() => {
+            for (let y = 0; y < this.SCREEN.HEIGHT; y++) for (let charX = 0; charX < this.SCREEN.CHAR_WIDTH; charX++) {
+                const charY = Math.floor(y / 8), pixY = y % 8, addr = (charY * 256) + (pixY * 32) + charX;
+                if (addr < 6144) { const byteVal = data[addr]; for (let bit = 0; bit < 8; bit++) { const pixX = charX * 8 + bit; this.pixels[y][pixX] = (byteVal & (1 << (7 - bit))) ? 1 : 0; } }
+            }
+            for (let charY = 0; charY < this.SCREEN.CHAR_HEIGHT; charY++) for (let charX = 0; charX < this.SCREEN.CHAR_WIDTH; charX++) {
+                const attrAddr = 6144 + (charY * 32) + charX, attrByte = data[attrAddr];
+                this.attributes[charY][charX] = { ink: attrByte & 0x07, paper: (attrByte >> 3) & 0x07, bright: (attrByte & 0x40) !== 0, flash: (attrByte & 0x80) !== 0 };
+            }
+        });
+    }
+    
+    loadImg(file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => this.safe(() => { this.convertImg(img); this.render(); this.saveState('load-image'); this.updateStatus('🖼️ Image converted', 'success'); });
+            img.onerror = () => this.handleError('Image Load Error', new Error('Failed to load image'));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => this.handleError('File Read Error', new Error('Failed to read image'));
+        reader.readAsDataURL(file);
+    }
+    
+    convertImg(img) {
+        this.safe(() => {
+            const temp = document.createElement('canvas'), tempCtx = temp.getContext('2d');
+            temp.width = this.SCREEN.WIDTH; temp.height = this.SCREEN.HEIGHT;
+            tempCtx.drawImage(img, 0, 0, this.SCREEN.WIDTH, this.SCREEN.HEIGHT);
+            const imgData = tempCtx.getImageData(0, 0, this.SCREEN.WIDTH, this.SCREEN.HEIGHT);
+            for (let y = 0; y < this.SCREEN.HEIGHT; y++) for (let x = 0; x < this.SCREEN.WIDTH; x++) {
+                const i = (y * this.SCREEN.WIDTH + x) * 4, gray = (imgData.data[i] + imgData.data[i + 1] + imgData.data[i + 2]) / 3;
+                this.pixels[y][x] = gray > 128 ? 1 : 0;
+            }
+            for (let charY = 0; charY < this.SCREEN.CHAR_HEIGHT; charY++) for (let charX = 0; charX < this.SCREEN.CHAR_WIDTH; charX++)
+                this.attributes[charY][charX] = { ink: this.ink, paper: this.paper, bright: this.bright, flash: false };
+        });
+    }
+    
+    exportASM() {
+        this.safe(() => {
+            let asm = `; ZX Spectrum Screen Data\n; Generated by ZX Spectrum Pixel Smasher v2.6\n; Created by D0k^RA - GPL v3.0\n\nSCREEN_DATA:\n`;
+            for (let y = 0; y < this.SCREEN.HEIGHT; y++) {
+                for (let charX = 0; charX < this.SCREEN.CHAR_WIDTH; charX++) {
+                    let byteVal = 0; for (let bit = 0; bit < 8; bit++) { const pixX = charX * 8 + bit; if (this.pixels[y] && this.pixels[y][pixX]) byteVal |= (1 << (7 - bit)); }
+                    if (charX === 0) asm += `    DB `; asm += `${byteVal.toString(16).toUpperCase().padStart(2, '0')}`;
+                    asm += charX < this.SCREEN.CHAR_WIDTH - 1 ? `, ` : `    ; Line ${y}\n`;
+                }
+            }
+            asm += `\nATTRIBUTE_DATA:\n`;
+            for (let charY = 0; charY < this.SCREEN.CHAR_HEIGHT; charY++) {
+                asm += `    DB `; for (let charX = 0; charX < this.SCREEN.CHAR_WIDTH; charX++) {
+                    const attr = this.attributes[charY][charX]; let attrByte = attr.ink | (attr.paper << 3);
+                    if (attr.bright) attrByte |= 0x40; if (attr.flash) attrByte |= 0x80;
+                    asm += `${attrByte.toString(16).toUpperCase().padStart(2, '0')}`; if (charX < this.SCREEN.CHAR_WIDTH - 1) asm += `, `;
+                }
+                asm += `    ; Attr line ${charY}\n`;
+            }
+            const blob = new Blob([asm], { type: 'text/plain' }), link = document.createElement('a');
+            link.href = URL.createObjectURL(blob); link.download = `zx_pixel_smasher_v2.6_${Date.now()}.asm`; link.click(); URL.revokeObjectURL(link.href);
+            this.updateStatus('🔧 ASM exported', 'success');
+        });
+    }
+    
+    handleKeyboard(e) {
+        this.safe(() => {
+            if (e.target.tagName === 'INPUT') return;
+            switch (e.key.toLowerCase()) {
+                case 'b': this.selectTool('brush'); break; case 'e': this.selectTool('eraser'); break; case 'f': this.selectTool('fill'); break; case 's': this.selectTool('shapes'); break;
+                case 'g': this.toggleGrid('8x8'); break; case '1': this.toggleGrid('1x1'); break; case '2': this.toggleGrid('16x16'); break;
+                case 'z': if (e.ctrlKey && e.shiftKey) { e.preventDefault(); this.redo(); } else if (e.ctrlKey) { e.preventDefault(); this.undo(); } break;
+                case '=': case '+': e.preventDefault(); this.setZoom(this.zoom + 0.5); break; case '-': e.preventDefault(); this.setZoom(this.zoom - 0.5); break;
+            }
+        });
+    }
+    
+    destroy() {
+        try {
+            this.stopFlash(); this.stopMemMon(); if (this.autoSaveInt) { clearInterval(this.autoSaveInt); this.autoSaveInt = null; }
+            if (this.boundMouseUp) document.removeEventListener('mouseup', this.boundMouseUp);
+            if (this.boundDocLeave) document.removeEventListener('mouseleave', this.boundDocLeave);
+            if (this.boundKeyboard) document.removeEventListener('keydown', this.boundKeyboard);
+            if (this.history) { this.history.clear(); this.history = null; }
+            this.memCache = null; if (this.previewCanvas) { this.previewCanvas = null; this.previewCtx = null; }
+            this.pixels = null; this.attributes = null; this.ctx = null; this.canvas = null; this.updateStatus('System shutdown', 'info');
+        } catch (e) { console.error('Cleanup error:', e); }
+    }
+}
+
+let app;
+try { app = new ZXSpectrumPixelSmasher(); } catch (e) { console.error('Failed to init:', e); alert('Failed to load. Refresh page.'); }
+window.addEventListener('beforeunload', () => { if (app) app.destroy(); });
+</script>
+</body>
+</html>
